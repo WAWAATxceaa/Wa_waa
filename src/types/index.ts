@@ -1,97 +1,80 @@
-export type UserRole = 'EMPLOYEE' | 'ADMIN';
+export type RoomStatus = 'active' | 'maintenance' | 'inactive';
 
-export type RoomStatusType = 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+export type BookingStatus = 'confirmed' | 'cancelled';
 
-export type BookingStatusType = 'CONFIRMED' | 'CANCELLED';
-
-export type NotificationType =
-  | 'BOOKING_CONFIRMED'
-  | 'BOOKING_UPDATED'
-  | 'BOOKING_CANCELLED'
-  | 'REMINDER_15MIN'
-  | 'SYSTEM';
-
-export interface RoomItem {
+export interface Room {
   id: string;
   name: string;
   capacity: number;
   floor: number;
-  description: string | null;
-  amenities: string[];
-  status: RoomStatusType;
-  imageUrl: string | null;
+  description?: string;
+  amenities: ('projector' | 'tv' | 'videoconference' | 'whiteboard')[];
+  status: RoomStatus;
+  imageUrl?: string;
   color: string;
-  createdAt: string;
-  updatedAt: string;
+  order: number;
+  // Computed properties
   isAvailableNow?: boolean;
   currentBooking?: {
     id: string;
     title: string;
-    userName: string;
+    bookerName: string;
     startTime: string;
     endTime: string;
   } | null;
 }
 
-export interface BookingItem {
+export interface Booking {
   id: string;
+  bookingCode: string; // 6-digit alphanumeric code e.g. "MT-8429" or "A9K2P4"
   roomId: string;
-  room: {
-    id: string;
-    name: string;
-    color: string;
-    floor: number;
-    capacity: number;
-  };
-  userId: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    department: string | null;
-    avatarUrl: string | null;
-  };
-  title: string;
-  description: string | null;
-  startTime: string;
-  endTime: string;
+  roomName: string;
+  roomColor?: string;
+  date: string; // 'YYYY-MM-DD'
+  startTime: string; // 'HH:mm'
+  endTime: string; // 'HH:mm'
+  startDateTime: string; // ISO string
+  endDateTime: string; // ISO string
   participantCount: number;
-  participantsNote: string | null;
-  status: BookingStatusType;
-  cancelledReason: string | null;
-  cancelledAt: string | null;
+  amenities: string[];
+  bookerName: string;
+  department: string;
+  bookerContact: string; // phone or email
+  title: string; // meeting topic
+  description?: string;
+  status: BookingStatus;
+  cancelledReason?: string;
+  cancelledAt?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface NotificationItem {
   id: string;
-  userId: string;
+  type: 'new_booking' | 'booking_updated' | 'booking_cancelled' | 'reminder_15min' | 'system';
+  bookingId?: string;
+  bookingCode?: string;
   title: string;
   message: string;
-  type: NotificationType;
-  isRead: boolean;
-  linkUrl: string | null;
   createdAt: string;
+  read: boolean;
 }
 
-export interface DashboardStats {
-  totalRooms: number;
-  availableRoomsNow: number;
-  busyRoomsNow: number;
-  todayBookingsCount: number;
-  totalParticipantsToday: number;
-  roomUtilization: {
-    name: string;
-    rate: number;
-    color: string;
-  }[];
-  popularRooms: {
-    name: string;
-    bookingCount: number;
-    hours: number;
-  }[];
-  peakHours: {
-    hour: string;
-    bookings: number;
-  }[];
+export interface SheetWebhookPayload {
+  action: 'create' | 'update' | 'cancel';
+  bookingCode: string;
+  status: string;
+  roomName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  participantCount: number;
+  amenities: string;
+  bookerName: string;
+  department: string;
+  contact: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  secretToken?: string;
 }

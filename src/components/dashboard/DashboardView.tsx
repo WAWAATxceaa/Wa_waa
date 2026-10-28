@@ -1,280 +1,286 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Users,
+  Calendar,
   Clock,
-  CalendarCheck,
-  Percent,
-  DoorOpen,
+  Sparkles,
   ArrowRight,
   TrendingUp,
-  RefreshCw,
-  Sparkles,
   PieChart as PieIcon,
-} from "lucide-react";
-import { formatThaiTime } from "@/lib/date-thai";
+  BarChart3,
+  CheckCircle2,
+  AlertCircle,
+  Plus,
+} from 'lucide-react';
 import {
-  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  Tooltip as RechartsTooltip,
-  Cell,
+  Tooltip,
+  ResponsiveContainer,
   PieChart,
   Pie,
-  Legend,
-} from "recharts";
+  Cell,
+  CartesianGrid,
+} from 'recharts';
+import { useBookingContext } from '../../context/BookingContext';
+import { formatThaiDate } from '../../utils/dateUtils';
 
-export function DashboardView() {
-  const [stats, setStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
+const GENZ_COLORS = ['#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#F59E0B', '#3B82F6'];
 
-  const fetchStats = async () => {
-    try {
-      const res = await fetch("/api/dashboard/stats");
-      const data = await res.json();
-      if (data.success) {
-        setStats(data.data);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+export const DashboardView: React.FC = () => {
+  const navigate = useNavigate();
+  const {
+    rooms,
+    bookings,
+    activeMeetingCount,
+    todayBookingCount,
+    availableRoomCount,
+    upcomingBookings,
+    loading,
+  } = useBookingContext();
 
-  useEffect(() => {
-    fetchStats();
+  // Chart 1: Most Popular Rooms (by confirmed booking count)
+  const roomStats = useMemo(() => {
+    return rooms.map((r) => {
+      const count = bookings.filter((b) => b.roomId === r.id && b.status === 'confirmed').length;
+      return {
+        name: r.name.split(' (')[0], // Short name
+        count,
+        color: r.color,
+      };
+    });
+  }, [rooms, bookings]);
 
-    const handleUpdate = () => {
-      fetchStats();
-    };
+  // Chart 2: Bookings by Department
+  const departmentStats = useMemo(() => {
+    const map: Record<string, number> = {};
+    bookings
+      .filter((b) => b.status === 'confirmed')
+      .forEach((b) => {
+        const dept = b.department.split(' (')[0];
+        map[dept] = (map[dept] || 0) + 1;
+      });
 
-    window.addEventListener("booking-realtime-update", handleUpdate);
-    const interval = setInterval(fetchStats, 60000);
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [bookings]);
 
-    return () => {
-      window.removeEventListener("booking-realtime-update", handleUpdate);
-      clearInterval(interval);
-    };
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[350px] space-y-3">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-        <span className="text-xs text-slate-500 font-medium">
-          กำลังโหลดข้อมูลแดชบอร์ด...
-        </span>
-      </div>
-    );
-  }
-
-  if (!stats) return null;
-
-  // Pie chart data
-  const pieData = stats.popularRooms.map((r: any) => ({
-    name: r.name.split("(")[0].trim(),
-    value: r.bookingCount,
-    color: r.color || "#4F46E5",
-  }));
+  // Chart 3: Peak Booking Hours Distribution (08:00 - 18:00)
+  const peakHourStats = useMemo(() => {
+    const hours = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+    return hours.map((h) => {
+      const count = bookings.filter((b) => {
+        if (b.status !== 'confirmed') return false;
+        return b.startTime <= h && b.endTime > h;
+      }).length;
+      return { hour: h, count };
+    });
+  }, [bookings]);
 
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800">
-            ภาพรวมการใช้ห้องประชุม (Dashboard)
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            ติดตามสถานะห้องประชุมแบบเรียลไทม์ และสถิติวิเคราะห์การใช้งาน
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Top Hero Banner */}
+      <div className="relative overflow-hidden rounded-4xl bg-gradient-to-r from-violet-600 via-pink-600 to-cyan-500 p-6 sm:p-10 text-white shadow-2xl shadow-violet-500/20">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-semibold mb-3">
+              <Sparkles className="w-3.5 h-3.5" />
+              Real-time Meeting Space
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-extrabold font-display leading-tight">
+              จองห้องประชุมอัจฉริยะ ✨
+            </h1>
+            <p className="text-violet-100 text-sm sm:text-base mt-1 max-w-xl">
+              เลือกห้อง ว่างทันที ไม่ต้องรออนุมัติ พร้อมระบบป้องกันเวลาซ้อนกันและแจ้งเตือนอัตโนมัติ
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => navigate('/book')}
+              className="px-6 py-3.5 rounded-2xl bg-white text-violet-700 font-display font-bold text-sm shadow-lg hover:bg-violet-50 transition-all flex items-center gap-2 active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              จองห้องเลย ✨
+            </button>
+            <button
+              onClick={() => navigate('/calendar')}
+              className="px-5 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 backdrop-blur-md text-white font-display font-semibold text-sm transition-all flex items-center gap-2"
+            >
+              <Calendar className="w-4 h-4" />
+              ดูปฏิทิน
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Bento Grid: 4 Metric Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {/* Metric 1 */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-transform">
+          <div className="flex items-center justify-between text-rose-500 mb-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              ใช้งานอยู่ตอนนี้
+            </span>
+            <div className="w-9 h-9 rounded-2xl bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-rose-500 animate-pulse" />
+            </div>
+          </div>
+          <div className="text-3xl sm:text-4xl font-black font-display text-slate-900 dark:text-white">
+            {activeMeetingCount}
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            ห้องประชุมที่กำลังมีการใช้งาน
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={fetchStats}
-          className="inline-flex items-center text-xs font-semibold px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-700 shadow-xs transition-colors"
-        >
-          <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
-          รีเฟรชข้อมูล
-        </button>
+        {/* Metric 2 */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-transform">
+          <div className="flex items-center justify-between text-emerald-500 mb-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              ห้องว่างพร้อมใช้
+            </span>
+            <div className="w-9 h-9 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            </div>
+          </div>
+          <div className="text-3xl sm:text-4xl font-black font-display text-emerald-600 dark:text-emerald-400">
+            {availableRoomCount}
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            จากทั้งหมด {rooms.length} ห้อง
+          </p>
+        </div>
+
+        {/* Metric 3 */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-transform">
+          <div className="flex items-center justify-between text-violet-500 mb-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              การจองวันนี้
+            </span>
+            <div className="w-9 h-9 rounded-2xl bg-violet-50 dark:bg-violet-950/50 flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-violet-600" />
+            </div>
+          </div>
+          <div className="text-3xl sm:text-4xl font-black font-display text-violet-600 dark:text-violet-400">
+            {todayBookingCount}
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            รายการประชุมทั้งหมดของวันนี้
+          </p>
+        </div>
+
+        {/* Metric 4 */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-transform">
+          <div className="flex items-center justify-between text-cyan-500 mb-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              รอเริ่มวันนี้
+            </span>
+            <div className="w-9 h-9 rounded-2xl bg-cyan-50 dark:bg-cyan-950/50 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-cyan-500" />
+            </div>
+          </div>
+          <div className="text-3xl sm:text-4xl font-black font-display text-cyan-600 dark:text-cyan-400">
+            {upcomingBookings.length}
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            รอบประชุมที่กำลังจะมาถึง
+          </p>
+        </div>
       </div>
 
-      {/* 4 Summary Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: ห้องที่ใช้งานอยู่ตอนนี้ */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
+      {/* Live Room Status Grid (Bento Large Item) */}
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-4xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <span className="text-xs font-semibold text-slate-500 block mb-1">
-              ใช้งานอยู่ขณะนี้
-            </span>
-            <div className="flex items-baseline space-x-1.5">
-              <span className="text-2xl font-black text-slate-800">
-                {stats.inUseCount}
-              </span>
-              <span className="text-xs text-slate-400">
-                / {stats.totalRooms} ห้อง
-              </span>
-            </div>
-            <span className="text-[11px] text-emerald-600 font-medium mt-1 inline-block">
-              ว่าง {stats.availableCount} ห้อง
-            </span>
+            <h2 className="text-lg sm:text-xl font-bold font-display text-slate-900 dark:text-white flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
+              สถานะห้องประชุมแบบสด (Live Status)
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              ไฟเขียว = ว่างพร้อมใช้งาน • ไฟแดง = มีคนกำลังประชุมอยู่
+            </p>
           </div>
-          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
-            <DoorOpen className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* Card 2: การจองวันนี้ */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-500 block mb-1">
-              การจองทั้งหมดวันนี้
-            </span>
-            <span className="text-2xl font-black text-slate-800">
-              {stats.todayBookingsCount}
-            </span>
-            <span className="text-[11px] text-indigo-600 font-medium mt-1 block">
-              รวม {stats.totalBookedHoursToday} ชั่วโมง
-            </span>
-          </div>
-          <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
-            <CalendarCheck className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* Card 3: อัตราการใช้ห้อง */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-500 block mb-1">
-              อัตราการใช้ห้องวันนี้
-            </span>
-            <div className="flex items-baseline space-x-1">
-              <span className="text-2xl font-black text-slate-800">
-                {stats.utilizationRate}%
-              </span>
-            </div>
-            <div className="w-24 bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
-              <div
-                className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                style={{ width: `${stats.utilizationRate}%` }}
-              />
-            </div>
-          </div>
-          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
-            <Percent className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* Card 4: Quick Action */}
-        <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-5 rounded-3xl text-white shadow-md shadow-indigo-200 flex flex-col justify-between">
-          <div>
-            <span className="text-xs font-semibold text-indigo-200 block">
-              ต้องการใช้ห้องประชุม?
-            </span>
-            <h3 className="font-bold text-base mt-1">จองห้องประชุมทันที</h3>
-          </div>
-          <Link
-            href="/book"
-            className="mt-3 inline-flex items-center text-xs font-bold px-3 py-2 bg-white text-indigo-700 rounded-xl hover:bg-indigo-50 transition-colors w-fit"
+          <button
+            onClick={() => navigate('/book')}
+            className="text-xs sm:text-sm font-semibold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1"
           >
-            เปิดฟอร์มจอง
-            <ArrowRight className="w-3.5 h-3.5 ml-1" />
-          </Link>
-        </div>
-      </div>
-
-      {/* Live Status of all rooms */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold text-base text-slate-800 flex items-center">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2 animate-ping" />
-            สถานะห้องประชุมเรียลไทม์ (Live Rooms Status)
-          </h2>
-          <span className="text-xs text-slate-400">
-            อัปเดตอัตโนมัติผ่าน SSE
-          </span>
+            เปิดฟอร์มจอง <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          {stats.roomStatuses.map((room: any) => {
-            const inUse = room.isCurrentlyInUse;
-
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {rooms.map((room) => {
+            const isAvailable = room.isAvailableNow && room.status === 'active';
             return (
               <div
                 key={room.id}
-                className={`p-4 rounded-2xl border transition-all ${
-                  inUse
-                    ? "bg-amber-50/40 border-amber-200 shadow-sm"
-                    : "bg-white border-slate-200 hover:border-slate-300"
-                }`}
+                className="rounded-3xl p-5 border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-800/40 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-1.5">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: room.color }}
-                    />
-                    <span className="font-bold text-xs text-slate-800">
-                      {room.code}
-                    </span>
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-3.5 h-3.5 rounded-full"
+                        style={{ backgroundColor: room.color }}
+                      />
+                      <span className="font-display font-semibold text-sm text-slate-900 dark:text-white">
+                        {room.name}
+                      </span>
+                    </div>
+                    {/* Live Indicator */}
+                    {isAvailable ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                        🟢 ว่าง
+                      </span>
+                    ) : room.status !== 'active' ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                        ⚙️ ปิดปรับปรุง
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                        🔴 ใช้งานอยู่
+                      </span>
+                    )}
                   </div>
 
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      inUse
-                        ? "bg-rose-100 text-rose-700"
-                        : "bg-emerald-100 text-emerald-700"
-                    }`}
-                  >
-                    {inUse ? "กำลังใช้งาน" : "● ว่าง"}
-                  </span>
-                </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 line-clamp-2">
+                    {room.description}
+                  </p>
 
-                <h3 className="font-bold text-xs text-slate-800 line-clamp-1">
-                  {room.name}
-                </h3>
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  {room.location} • {room.capacity} ที่นั่ง
-                </p>
-
-                {/* Current Meeting or Next Meeting */}
-                <div className="mt-3 pt-2 border-t border-slate-100 text-xs">
-                  {inUse && room.currentMeeting ? (
-                    <div className="space-y-0.5">
-                      <span className="text-[9px] uppercase font-bold text-rose-600 block">
-                        กำลังประชุม:
-                      </span>
-                      <p className="font-semibold text-slate-800 text-[11px] line-clamp-1">
-                        {room.currentMeeting.title}
-                      </p>
-                      <span className="text-slate-500 text-[10px] block">
-                        ถึง {formatThaiTime(room.currentMeeting.endTime)} (
-                        {room.currentMeeting.bookerName})
-                      </span>
-                    </div>
-                  ) : room.nextMeeting ? (
-                    <div className="space-y-0.5 text-slate-600">
-                      <span className="text-[9px] uppercase font-bold text-indigo-600 block">
-                        คิวถัดไป:
-                      </span>
-                      <p className="font-medium text-slate-700 text-[11px] line-clamp-1">
-                        {room.nextMeeting.title}
-                      </p>
-                      <span className="text-slate-400 text-[10px] block">
-                        เริ่ม {formatThaiTime(room.nextMeeting.startTime)}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="text-slate-400 text-[11px] py-1">
-                      ไม่มีคิวต่อไปวันนี้
+                  {/* Current Active Meeting Info */}
+                  {room.currentBooking && (
+                    <div className="p-3 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-900/40 mb-3 text-xs">
+                      <div className="font-bold text-rose-800 dark:text-rose-200 line-clamp-1">
+                        {room.currentBooking.title}
+                      </div>
+                      <div className="text-[11px] text-rose-600 dark:text-rose-400 mt-0.5">
+                        โดย {room.currentBooking.bookerName} ({room.currentBooking.startTime} - {room.currentBooking.endTime} น.)
+                      </div>
                     </div>
                   )}
+
+                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>ความจุ: {room.capacity} คน</span>
+                    <span>• ชั้น {room.floor}</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                  <button
+                    onClick={() => navigate(`/book?roomId=${room.id}`)}
+                    disabled={room.status !== 'active'}
+                    className={`w-full py-2.5 px-3 rounded-2xl text-xs font-bold font-display transition-all flex items-center justify-center gap-1.5 ${
+                      isAvailable
+                        ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                    }`}
+                  >
+                    {isAvailable ? 'จองห้องนี้ทันที ✨' : 'จองช่วงเวลาอื่น'}
+                  </button>
                 </div>
               </div>
             );
@@ -282,53 +288,30 @@ export function DashboardView() {
         </div>
       </div>
 
-      {/* Feature 3: Recharts Charts (Peak Hours & Room Popularity) */}
+      {/* Analytics Charts Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recharts Bar Chart: Peak Hours (08:00 - 18:00) */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-base text-slate-800 flex items-center">
-              <Clock className="w-4 h-4 mr-2 text-indigo-600" />
-              ช่วงเวลาที่มีการใช้งานมากที่สุด (Peak Hours - Recharts)
-            </h3>
-            <span className="text-xs text-slate-400">รอบ 30 วัน</span>
-          </div>
-
-          <div className="h-64 w-full pt-2">
+        {/* Chart 1: Popular Rooms Bar Chart */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-4xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <h3 className="text-base font-bold font-display text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+            <BarChart3 className="w-4 h-4 text-violet-500" />
+            ห้องยอดนิยม (จำนวนครั้งที่ถูกจอง)
+          </h3>
+          <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={stats.peakHoursData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
-                <XAxis
-                  dataKey="hour"
-                  tick={{ fontSize: 11, fill: "#64748b" }}
-                  tickLine={false}
-                  axisLine={{ stroke: "#e2e8f0" }}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fontSize: 11, fill: "#64748b" }}
-                  tickLine={false}
-                  axisLine={{ stroke: "#e2e8f0" }}
-                />
-                <RechartsTooltip
-                  formatter={(val: any) => [`${val} ครั้ง`, "จำนวนครั้งที่จอง"]}
-                  labelFormatter={(label) => `ช่วงเวลา ${label}`}
+              <BarChart data={roomStats}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                <XAxis dataKey="name" fontSize={11} stroke="#94A3B8" />
+                <YAxis allowDecimals={false} fontSize={11} stroke="#94A3B8" />
+                <Tooltip
                   contentStyle={{
-                    backgroundColor: "#1e293b",
-                    color: "#fff",
-                    borderRadius: "12px",
-                    fontSize: "12px",
-                    border: "none",
+                    borderRadius: '16px',
+                    border: 'none',
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
                   }}
                 />
-                <Bar dataKey="count" radius={[6, 6, 0, 0]} fill="#6366f1">
-                  {stats.peakHoursData.map((entry: any, index: number) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.count > 0 ? "#4f46e5" : "#e0e7ff"}
-                    />
+                <Bar dataKey="count" name="จำนวนการจอง" radius={[10, 10, 0, 0]}>
+                  {roomStats.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color || GENZ_COLORS[index % GENZ_COLORS.length]} />
                   ))}
                 </Bar>
               </BarChart>
@@ -336,50 +319,47 @@ export function DashboardView() {
           </div>
         </div>
 
-        {/* Recharts Pie Chart: Popular Rooms Distribution */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-base text-slate-800 flex items-center">
-              <PieIcon className="w-4 h-4 mr-2 text-indigo-600" />
-              สัดส่วนการใช้งานห้องประชุม (Room Popularity - Recharts)
-            </h3>
-            <span className="text-xs text-slate-400">ยอดรวมทั้งหมด</span>
-          </div>
-
-          <div className="h-64 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, percent }) =>
-                    `${name} (${(percent * 100).toFixed(0)}%)`
-                  }
-                >
-                  {pieData.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <RechartsTooltip
-                  formatter={(val: any) => [`${val} ครั้ง`, "การจอง"]}
-                  contentStyle={{
-                    backgroundColor: "#1e293b",
-                    color: "#fff",
-                    borderRadius: "12px",
-                    fontSize: "12px",
-                    border: "none",
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+        {/* Chart 2: Bookings by Department Pie Chart */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-4xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <h3 className="text-base font-bold font-display text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+            <PieIcon className="w-4 h-4 text-pink-500" />
+            สัดส่วนการจองแยกตามแผนก
+          </h3>
+          <div className="h-64 flex items-center justify-center">
+            {departmentStats.length === 0 ? (
+              <div className="text-slate-400 text-xs">ยังไม่มีข้อมูลการจองในระบบ</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={departmentStats}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    innerRadius={45}
+                    paddingAngle={4}
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    fontSize={11}
+                  >
+                    {departmentStats.map((entry, index) => (
+                      <Cell key={`cell-dept-${index}`} fill={GENZ_COLORS[index % GENZ_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: '16px',
+                      border: 'none',
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
-}
+};

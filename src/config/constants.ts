@@ -1,0 +1,84 @@
+import { Room } from '../types';
+
+export const DEPARTMENTS = [
+  'ฝ่ายพัฒนาซอฟต์แวร์ (Dev & Tech)',
+  'ฝ่ายออกแบบและผลิตภัณฑ์ (UI/UX & Product)',
+  'ฝ่ายการตลาดและประชาสัมพันธ์ (Marketing)',
+  'ฝ่ายขายและพัฒนาธุรกิจ (Sales & BD)',
+  'ฝ่ายบุคคลและการเงิน (HR & Finance)',
+  'ฝ่ายปฏิบัติการและการจัดการ (Operations)',
+  'ทีมผู้บริหาร (Executive)',
+  'อื่นๆ',
+];
+
+export const AMENITIES_LIST = [
+  { id: 'projector', label: 'โปรเจกเตอร์ 4K', icon: 'Projector' },
+  { id: 'tv', label: 'สมาร์ททีวี 75 นิ้ว', icon: 'Tv' },
+  { id: 'videoconference', label: 'กล้อง & ไมค์วิดีโอคอนเฟอเรนซ์', icon: 'Video' },
+  { id: 'whiteboard', label: 'กระดานไวท์บอร์ดอัจฉริยะ', icon: 'PenTool' },
+] as const;
+
+export const INITIAL_ROOMS: Room[] = [
+  {
+    id: 'room-1',
+    name: 'Cyber Neon Horizon (ห้องใหญ่)',
+    capacity: 20,
+    floor: 4,
+    description: 'ห้องประชุมใหญ่ วิวเมืองมุมกว้าง เหมาะสำหรับ Townhall, ระดมความคิด หรือประชุมทั้งแผนก',
+    amenities: ['projector', 'tv', 'videoconference', 'whiteboard'],
+    status: 'active',
+    color: '#8B5CF6', // Violet
+    imageUrl: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=800&q=80',
+    order: 1,
+  },
+  {
+    id: 'room-2',
+    name: 'Pink Cyberpunk (ห้องกลาง)',
+    capacity: 10,
+    floor: 3,
+    description: 'ห้องประชุมขนาดกลาง บรรยากาศสดใส มีพลัง เหมาะสำหรับ Sprint Review & Workshop',
+    amenities: ['tv', 'videoconference', 'whiteboard'],
+    status: 'active',
+    color: '#EC4899', // Pink
+    imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+    order: 2,
+  },
+  {
+    id: 'room-3',
+    name: 'Cyan Future Lab (ห้องบรีฟงาน)',
+    capacity: 6,
+    floor: 3,
+    description: 'ห้องประชุมกระจกโปร่ง สไตล์โมเดิร์น เหมาะสำหรับประชุมโปรเจกต์ย่อยและ Client Pitch',
+    amenities: ['tv', 'whiteboard'],
+    status: 'active',
+    color: '#06B6D4', // Cyan
+    imageUrl: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=800&q=80',
+    order: 3,
+  },
+  {
+    id: 'room-4',
+    name: 'Lime Creative Hub (ห้องระดมไอเดีย)',
+    capacity: 8,
+    floor: 2,
+    description: 'ห้องเน้นความคิดสร้างสรรค์ มี Beanbags และ ไวท์บอร์ดรอบทิศทาง',
+    amenities: ['tv', 'videoconference', 'whiteboard'],
+    status: 'active',
+    color: '#84CC16', // Lime
+    imageUrl: 'https://images.unsplash.com/photo-1505409859467-3a796fd5798e?auto=format&fit=crop&w=800&q=80',
+    order: 4,
+  },
+  {
+    id: 'room-5',
+    name: 'Sunset Pod (ห้องโฟกัส/1-on-1)',
+    capacity: 4,
+    floor: 2,
+    description: 'ห้องเก็บเสียงส่วนตัว เหมาะสำหรับสัมภาษณ์งาน, 1-on-1 หรือโทรคุยกับต่างประเทศ',
+    amenities: ['videoconference', 'whiteboard'],
+    status: 'active',
+    color: '#F59E0B', // Amber
+    imageUrl: 'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=800&q=80',
+    order: 5,
+  },
+];
+
+export const ADMIN_PIN = '8888'; // Default Admin PIN for room management and confidential data

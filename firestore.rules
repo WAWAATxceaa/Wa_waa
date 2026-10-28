@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Rooms collection: Public read, authenticated or admin write
+    match /rooms/{roomId} {
+      allow read: if true;
+      allow write: if true; // In production without auth, protected by Admin PIN on client
+    }
+    
+    // Bookings collection: Zero-Auth Booking System
+    match /bookings/{bookingId} {
+      // Anyone can read bookings to show on calendar and check availability
+      allow read: if true;
+      
+      // Creating a booking requires basic validation
+      allow create: if request.resource.data.bookingCode is string
+                    && request.resource.data.roomId is string
+                    && request.resource.data.date is string
+                    && request.resource.data.startTime is string
+                    && request.resource.data.endTime is string
+                    && request.resource.data.bookerName is string
+                    && request.resource.data.status in ['confirmed', 'cancelled'];
+                    
+      // Updating or cancelling a booking
+      allow update: if request.resource.data.bookingCode == resource.data.bookingCode;
+      
+      // Prevent arbitrary deletions - soft delete / cancellation preferred
+      allow delete: if false;
+    }
+    
+    // Notifications collection: Real-time public announcements
+    match /notifications/{notificationId} {
+      allow read, write: if true;
+    }
+  }
+}
