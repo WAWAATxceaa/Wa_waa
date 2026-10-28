@@ -1,0 +1,102 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  EMPLOYEE
+  ADMIN
+}
+
+enum RoomStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  BOOKING_UPDATED
+  BOOKING_CANCELLED
+  REMINDER_15MIN
+  SYSTEM
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String
+  name          String
+  department    String?
+  role          Role           @default(EMPLOYEE)
+  avatarUrl     String?
+  bookings      Booking[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Room {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  capacity    Int
+  floor       Int
+  description String?
+  amenities   String[]
+  status      RoomStatus  @default(ACTIVE)
+  imageUrl    String?
+  color       String      @default("#3b82f6")
+  bookings    Booking[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Booking {
+  id               String        @id @default(cuid())
+  roomId           String
+  room             Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  startTime        DateTime
+  endTime          DateTime
+  participantCount Int           @default(1)
+  participantsNote String?
+  status           BookingStatus @default(CONFIRMED)
+  cancelledReason  String?
+  cancelledAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model Notification {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean         @default(false)
+  linkUrl   String?
+  createdAt DateTime        @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+}
