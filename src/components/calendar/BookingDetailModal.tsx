@@ -1,183 +1,145 @@
 "use client";
 
-import React, { useState } from "react";
-import { X, Calendar, Clock, MapPin, Users, User, Trash2, AlertTriangle } from "lucide-react";
-import { BookingItem } from "@/types";
-import { formatThaiDateRange } from "@/lib/timezone";
-import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { X, Calendar, Clock, User, Building2, Phone, Users, ExternalLink, ShieldCheck } from "lucide-react";
+import { formatThaiDate, formatThaiTime } from "@/lib/date-thai";
 
 interface BookingDetailModalProps {
-  booking: BookingItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onCancelled: () => void;
+  booking: any | null;
 }
 
 export function BookingDetailModal({
-  booking,
   isOpen,
   onClose,
-  onCancelled,
+  booking,
 }: BookingDetailModalProps) {
-  const { data: session } = useSession();
-  const [cancelling, setCancelling] = useState(false);
-  const [reason, setReason] = useState("");
-  const [showConfirmCancel, setShowConfirmCancel] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   if (!isOpen || !booking) return null;
 
-  const isOwner = session?.user?.id === booking.userId;
-  const isAdmin = session?.user?.role === "ADMIN";
-  const canCancel = (isOwner || isAdmin) && booking.status === "CONFIRMED";
-
-  const handleCancelBooking = async () => {
-    setCancelling(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/bookings/${booking.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "ไม่สามารถยกเลิกการจองได้");
-        setCancelling(false);
-        return;
-      }
-
-      onCancelled();
-      onClose();
-    } catch (err) {
-      setError("เกิดข้อผิดพลาดในการเชื่อมต่อ");
-    } finally {
-      setCancelling(false);
-    }
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in-0">
-      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl text-card-foreground">
-        <div className="flex items-center justify-between pb-3 border-b border-border">
-          <div className="flex items-center gap-2">
-            <span
-              className="w-3.5 h-3.5 rounded-full shrink-0"
-              style={{ backgroundColor: booking.room.color }}
-            />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              รายละเอียดการจอง
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+        {/* Header with Room Color Bar */}
+        <div
+          className="px-6 py-4 text-white flex items-center justify-between"
+          style={{ backgroundColor: booking.room?.color || "#4F46E5" }}
+        >
+          <div>
+            <span className="text-xs font-medium uppercase tracking-wider opacity-90 block">
+              {booking.room?.name || "ห้องประชุม"}
             </span>
+            <h3 className="font-bold text-lg mt-0.5 leading-snug">
+              {booking.title}
+            </h3>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-black/10 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {error && (
-          <div className="mt-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <div className="mt-4 space-y-4">
-          <div>
-            <h3 className="text-lg font-bold text-foreground">{booking.title}</h3>
-            {booking.status === "CANCELLED" && (
-              <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400 text-xs font-medium">
-                ยกเลิกแล้ว {booking.cancelledReason ? `(${booking.cancelledReason})` : ""}
+        <div className="p-6 space-y-4">
+          {/* Booking Code Tag */}
+          <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <div>
+              <span className="text-[11px] text-slate-500 block">รหัสอ้างอิงการจอง</span>
+              <span className="font-mono font-bold text-indigo-700 text-sm">
+                {booking.bookingCode}
               </span>
+            </div>
+            <span
+              className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                booking.status === "CONFIRMED"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : "bg-rose-50 text-rose-700 border border-rose-200"
+              }`}
+            >
+              {booking.status === "CONFIRMED" ? "ยืนยันแล้ว" : "ยกเลิกแล้ว"}
+            </span>
+          </div>
+
+          {/* Details list */}
+          <div className="space-y-3 text-sm text-slate-600">
+            <div className="flex items-start space-x-3">
+              <Calendar className="w-4 h-4 text-slate-400 mt-0.5" />
+              <div>
+                <span className="font-medium text-slate-800">
+                  {formatThaiDate(booking.startTime, "medium")}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <Clock className="w-4 h-4 text-slate-400 mt-0.5" />
+              <div>
+                <span className="font-medium text-slate-800">
+                  {formatThaiTime(booking.startTime)} - {formatThaiTime(booking.endTime)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <User className="w-4 h-4 text-slate-400 mt-0.5" />
+              <div>
+                <span>ผู้จอง: </span>
+                <span className="font-medium text-slate-800">
+                  {booking.bookerName}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <Building2 className="w-4 h-4 text-slate-400 mt-0.5" />
+              <div>
+                <span>แผนก: </span>
+                <span className="font-medium text-slate-800">
+                  {booking.bookerDepartment}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <Users className="w-4 h-4 text-slate-400 mt-0.5" />
+              <div>
+                <span>จำนวนผู้เข้าร่วม: </span>
+                <span className="font-medium text-slate-800">
+                  {booking.participantCount} คน
+                </span>
+              </div>
+            </div>
+
+            {booking.description && (
+              <div className="pt-2 border-t border-slate-100 text-xs text-slate-500">
+                <span className="font-semibold block text-slate-700 mb-0.5">
+                  รายละเอียดเพิ่มเติม:
+                </span>
+                {booking.description}
+              </div>
             )}
           </div>
 
-          <div className="space-y-2.5 text-sm">
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <MapPin className="w-4 h-4 text-primary shrink-0" />
-              <span>
-                <strong className="text-foreground">{booking.room.name}</strong> (ชั้น {booking.room.floor})
-              </span>
-            </div>
+          {/* Actions */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-xs text-slate-500 hover:text-slate-800"
+            >
+              ปิดหน้าต่าง
+            </button>
 
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <Clock className="w-4 h-4 text-primary shrink-0" />
-              <span>{formatThaiDateRange(booking.startTime, booking.endTime)}</span>
-            </div>
-
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <User className="w-4 h-4 text-primary shrink-0" />
-              <span>
-                ผู้จอง: <strong className="text-foreground">{booking.user.name}</strong>{" "}
-                {booking.user.department ? `(${booking.user.department})` : ""}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <Users className="w-4 h-4 text-primary shrink-0" />
-              <span>
-                ผู้เข้าร่วม: <strong className="text-foreground">{booking.participantCount} คน</strong>{" "}
-                {booking.participantsNote ? `• ${booking.participantsNote}` : ""}
-              </span>
-            </div>
+            <Link
+              href={`/manage/${booking.bookingCode}`}
+              className="inline-flex items-center text-xs font-semibold px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl transition-colors"
+            >
+              แก้ไขหรือยกเลิกการจอง
+              <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
+            </Link>
           </div>
-
-          {booking.description && (
-            <div className="p-3 rounded-xl bg-muted/50 text-xs text-muted-foreground border border-border">
-              <span className="font-semibold block text-foreground mb-1">วาระ / รายละเอียด:</span>
-              {booking.description}
-            </div>
-          )}
-
-          {/* Cancellation section */}
-          {canCancel && !showConfirmCancel && (
-            <div className="pt-3 border-t border-border flex justify-end">
-              <button
-                type="button"
-                onClick={() => setShowConfirmCancel(true)}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-destructive hover:bg-destructive/10 border border-destructive/20 flex items-center gap-1.5 transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>ยกเลิกการจองนี้</span>
-              </button>
-            </div>
-          )}
-
-          {canCancel && showConfirmCancel && (
-            <div className="mt-3 p-3.5 rounded-xl border border-destructive/30 bg-destructive/5 space-y-3">
-              <p className="text-xs font-medium text-destructive">
-                คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการจองนี้?
-              </p>
-              <input
-                type="text"
-                placeholder="ระบุเหตุผลการยกเลิก (ไม่บังคับ)"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-background"
-              />
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmCancel(false)}
-                  disabled={cancelling}
-                  className="px-3 py-1.5 rounded-lg border border-border text-xs"
-                >
-                  ย้อนกลับ
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCancelBooking}
-                  disabled={cancelling}
-                  className="px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-xs font-medium hover:bg-destructive/90"
-                >
-                  {cancelling ? "กำลังยกเลิก..." : "ยืนยันยกเลิก"}
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

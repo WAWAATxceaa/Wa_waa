@@ -1,269 +1,240 @@
-import { PrismaClient, Role, RoomStatus, BookingStatus, NotificationType } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seeding...');
+  console.log("🌱 เริ่มต้นการ Seed ข้อมูลระบบจองห้องประชุม...");
 
-  // 1. Clear existing data
-  await prisma.notification.deleteMany();
-  await prisma.auditLog.deleteMany();
+  // ล้างข้อมูลเก่า
+  await prisma.bookingEquipment.deleteMany();
   await prisma.booking.deleteMany();
+  await prisma.roomEquipment.deleteMany();
+  await prisma.equipment.deleteMany();
   await prisma.room.deleteMany();
-  await prisma.user.deleteMany();
 
-  // 2. Hash passwords
-  const adminPassword = await bcrypt.hash('admin1234', 10);
-  const employeePassword = await bcrypt.hash('emp1234', 10);
-
-  // 3. Create Users
-  const admin = await prisma.user.create({
+  // 1. เพิ่มอุปกรณ์
+  const eqProjector = await prisma.equipment.create({
     data: {
-      email: 'admin@company.com',
-      passwordHash: adminPassword,
-      name: 'สมเกียรติ ยิ่งเจริญ (Admin)',
-      department: 'ฝ่ายบริหาร / IT',
-      role: Role.ADMIN,
-      avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
+      name: "โปรเจกเตอร์ 4K",
+      icon: "projector",
+      description: "ความละเอียดสูง รองรับ HDMI และไร้สาย",
     },
   });
 
-  const emp1 = await prisma.user.create({
+  const eqTv = await prisma.equipment.create({
     data: {
-      email: 'somchai@company.com',
-      passwordHash: employeePassword,
-      name: 'สมชาย พัฒนาการ',
-      department: 'แผนกวิศวกรรมซอฟต์แวร์ (IT)',
-      role: Role.EMPLOYEE,
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+      name: "Smart TV 65 นิ้ว",
+      icon: "tv",
+      description: "จอสัมผัส รองรับการเขียนโน้ตและต่อคอมพิวเตอร์",
     },
   });
 
-  const emp2 = await prisma.user.create({
+  const eqVideo = await prisma.equipment.create({
     data: {
-      email: 'suda@company.com',
-      passwordHash: employeePassword,
-      name: 'สุดา ดวงใจ',
-      department: 'ฝ่ายทรัพยากรบุคคล (HR)',
-      role: Role.EMPLOYEE,
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+      name: "ระบบ Video Conference (Logitech Rally)",
+      icon: "video",
+      description: "กล้อง AI ซูมตามคนพูด พร้อมลำโพงและไมค์รอบทิศทาง",
     },
   });
 
-  const emp3 = await prisma.user.create({
+  const eqMic = await prisma.equipment.create({
     data: {
-      email: 'ananda@company.com',
-      passwordHash: employeePassword,
-      name: 'อนันดา ศิริโชค',
-      department: 'ฝ่ายการตลาด (Marketing)',
-      role: Role.EMPLOYEE,
-      avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150',
+      name: "ไมโครโฟนไร้สาย (คู่)",
+      icon: "mic",
+      description: "ไมค์ลอยเสียงคมชัดสำหรับวิทยากร",
     },
   });
 
-  console.log('✅ Users created.');
+  const eqWhiteboard = await prisma.equipment.create({
+    data: {
+      name: "ไวท์บอร์ดกระจก & ปากกา",
+      icon: "board",
+      description: "ไวท์บอร์ดแม่เหล็กพร้อมปากกาครบชุด",
+    },
+  });
 
-  // 4. Create Rooms
+  console.log("✅ เพิ่มอุปกรณ์พื้นฐานสำเร็จ (5 รายการ)");
+
+  // 2. เพิ่มห้องประชุม
   const room1 = await prisma.room.create({
     data: {
-      name: 'ห้องประชุมสัตตบรรณ (Boardroom)',
+      name: "ห้องประชุมสุพรรณิการ์ (Boardroom A)",
+      code: "RM-101",
       capacity: 20,
-      floor: 10,
-      description: 'ห้องประชุมผู้บริหารขนาดใหญ่ พร้อมอุปกรณ์ประชุมทางไกลระดับพรีเมียมและระบบเสียงรอบทิศทาง',
-      amenities: ['โปรเจกเตอร์ 4K', 'ระบบ Video Conference', 'ไวท์บอร์ดอัจฉริยะ', 'ไมโครโฟนไร้สาย', 'Smart TV 75"'],
-      status: RoomStatus.ACTIVE,
-      color: '#2563eb', // Blue
-      imageUrl: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?w=800',
+      location: "ชั้น 3 อาคารอำนวยการ",
+      color: "#4F46E5", // Indigo
+      description: "ห้องประชุมผู้บริหาร โต๊ะประชุมตัวยู พร้อมระบบสัมมนาครบวงจร",
+      isActive: true,
+      equipments: {
+        create: [
+          { equipmentId: eqVideo.id, quantity: 1 },
+          { equipmentId: eqProjector.id, quantity: 1 },
+          { equipmentId: eqMic.id, quantity: 2 },
+          { equipmentId: eqWhiteboard.id, quantity: 1 },
+        ],
+      },
     },
   });
 
   const room2 = await prisma.room.create({
     data: {
-      name: 'ห้องประชุมอินทนิล (Meeting 1)',
-      capacity: 8,
-      floor: 3,
-      description: 'ห้องประชุมขนาดกลาง เหมาะสำหรับการระดมสมองและพูดคุยวางแผนงานภายในทีม',
-      amenities: ['โปรเจกเตอร์', 'ไวท์บอร์ดกระจก', 'ปลั๊กไฟตั้งโต๊ะรอบทิศ'],
-      status: RoomStatus.ACTIVE,
-      color: '#10b981', // Green
-      imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800',
+      name: "ห้องประชุมกาสะลอง (Meeting Room B)",
+      code: "RM-102",
+      capacity: 10,
+      location: "ชั้น 3 อาคารอำนวยการ",
+      color: "#0EA5E9", // Sky Blue
+      description: "ห้องประชุมขนาดกลาง เหมาะสำหรับประชุมทีม ประสานงานโครงการ",
+      isActive: true,
+      equipments: {
+        create: [
+          { equipmentId: eqTv.id, quantity: 1 },
+          { equipmentId: eqWhiteboard.id, quantity: 1 },
+        ],
+      },
     },
   });
 
   const room3 = await prisma.room.create({
     data: {
-      name: 'ห้องประชุมราชพฤกษ์ (Hall B)',
-      capacity: 35,
-      floor: 5,
-      description: 'ห้องประชุมสัมมนาและอบรมขนาดใหญ่ มีจอภาพคู่และเวทีนำเสนอ',
-      amenities: ['โปรเจกเตอร์คู่ (Dual)', 'ระบบ Video Conference', 'ลำโพงสเตอริโอ', 'ไวท์บอร์ดใหญ่'],
-      status: RoomStatus.ACTIVE,
-      color: '#8b5cf6', // Purple
-      imageUrl: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800',
+      name: "ห้องประชุมราชพฤกษ์ (Auditorium C)",
+      code: "RM-201",
+      capacity: 50,
+      location: "ชั้น 4 อาคารนวัตกรรม",
+      color: "#F59E0B", // Amber
+      description: "ห้องประชุมใหญ่แบบเธียเตอร์ สำหรับจัดอบรม สัมมนา และแถลงข่าว",
+      isActive: true,
+      equipments: {
+        create: [
+          { equipmentId: eqProjector.id, quantity: 2 },
+          { equipmentId: eqMic.id, quantity: 4 },
+          { equipmentId: eqVideo.id, quantity: 1 },
+        ],
+      },
     },
   });
 
   const room4 = await prisma.room.create({
     data: {
-      name: 'ห้องประชุมจามจุรี (Huddle 2)',
-      capacity: 4,
-      floor: 2,
-      description: 'ห้องประชุมด่วนขนาดกะทัดรัด เหมาะสำหรับ 1-on-1 หรือพูดคุยกลุ่มย่อย 2-4 ท่าน',
-      amenities: ['Smart TV 55"', 'ไวท์บอร์ด', 'เว็บแคมความคมชัดสูง'],
-      status: RoomStatus.ACTIVE,
-      color: '#f59e0b', // Amber
-      imageUrl: 'https://images.unsplash.com/photo-1505409859467-3a796fd5798e?w=800',
+      name: "ห้องอินทนิล (Brainstorming Room D)",
+      code: "RM-103",
+      capacity: 6,
+      location: "ชั้น 2 อาคารนวัตกรรม",
+      color: "#10B981", // Emerald
+      description: "ห้องประชุมขนาดกะทัดรัด สำหรับระดมสมองแบบกลุ่มย่อยและ Agile Standup",
+      isActive: true,
+      equipments: {
+        create: [
+          { equipmentId: eqTv.id, quantity: 1 },
+          { equipmentId: eqWhiteboard.id, quantity: 1 },
+        ],
+      },
     },
   });
 
   const room5 = await prisma.room.create({
     data: {
-      name: 'ห้องประชุมพวงคราม (Creative Lab)',
-      capacity: 12,
-      floor: 4,
-      description: 'ห้องประชุมสไตล์โมเดิร์นสำหรับการออกแบบและงานสร้างสรรค์',
-      amenities: ['Smart TV 65"', 'ระบบ Video Conference', 'ไวท์บอร์ดรอบทิศทาง', 'ชุดโซฟาพักผ่อน'],
-      status: RoomStatus.MAINTENANCE, // ทดสอบสถานะปิดปรับปรุง
-      color: '#ec4899', // Pink
-      imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800',
+      name: "ห้องประชุมบัวหลวง (Executive Boardroom E)",
+      code: "RM-202",
+      capacity: 16,
+      location: "ชั้น 4 อาคารอำนวยการ",
+      color: "#EC4899", // Pink
+      description: "ห้องประชุมระดับ VIP ตกแต่งหรูหรา พร้อมระบบจอสัมผัสและเสียงรอบทิศทาง",
+      isActive: true,
+      equipments: {
+        create: [
+          { equipmentId: eqVideo.id, quantity: 1 },
+          { equipmentId: eqTv.id, quantity: 1 },
+          { equipmentId: eqMic.id, quantity: 2 },
+        ],
+      },
     },
   });
 
-  console.log('✅ Rooms created.');
+  console.log("✅ เพิ่มห้องประชุมสำเร็จ (5 ห้อง)");
 
-  // 5. Create Sample Bookings (Today & Upcoming)
+  // 3. จำลองการจองสำหรับวันนี้และวันพรุ่งนี้
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayStr = now.toISOString().split("T")[0];
 
-  // Meeting 1: Today 09:00 - 10:30 (Room 1)
-  const m1Start = new Date(today);
-  m1Start.setHours(9, 0, 0, 0);
-  const m1End = new Date(today);
-  m1End.setHours(10, 30, 0, 0);
+  // วันนี้ 09:30 - 11:30 ห้องสุพรรณิการ์
+  const booking1Start = new Date(`${todayStr}T09:30:00+07:00`);
+  const booking1End = new Date(`${todayStr}T11:30:00+07:00`);
 
-  // Meeting 2: Today 11:00 - 12:30 (Room 2)
-  const m2Start = new Date(today);
-  m2Start.setHours(11, 0, 0, 0);
-  const m2End = new Date(today);
-  m2End.setHours(12, 30, 0, 0);
-
-  // Meeting 3: Today 13:30 - 15:30 (Room 1)
-  const m3Start = new Date(today);
-  m3Start.setHours(13, 30, 0, 0);
-  const m3End = new Date(today);
-  m3End.setHours(15, 30, 0, 0);
-
-  // Meeting 4: Tomorrow 10:00 - 12:00 (Room 3)
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const m4Start = new Date(tomorrow);
-  m4Start.setHours(10, 0, 0, 0);
-  const m4End = new Date(tomorrow);
-  m4End.setHours(12, 0, 0, 0);
-
-  const booking1 = await prisma.booking.create({
+  await prisma.booking.create({
     data: {
+      bookingCode: "BK-2610-A101",
+      manageToken: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
       roomId: room1.id,
-      userId: emp1.id,
-      title: 'ประชุมวางแผนสปรินต์ประจำเดือน (Sprint Planning)',
-      description: 'ทบทวน Backlog และวางแผนงานสำหรับไตรมาสใหม่',
-      startTime: m1Start,
-      endTime: m1End,
-      participantCount: 10,
-      participantsNote: 'ทีม Dev ทั้งหมด และ Product Owner',
-      status: BookingStatus.CONFIRMED,
-    },
-  });
-
-  const booking2 = await prisma.booking.create({
-    data: {
-      roomId: room2.id,
-      userId: emp2.id,
-      title: 'สัมภาษณ์งานตำแหน่ง Senior Frontend Engineer',
-      description: 'สัมภาษณ์รอบสุดท้ายแบบ On-site',
-      startTime: m2Start,
-      endTime: m2End,
-      participantCount: 4,
-      participantsNote: 'HR และ Tech Lead',
-      status: BookingStatus.CONFIRMED,
-    },
-  });
-
-  const booking3 = await prisma.booking.create({
-    data: {
-      roomId: room1.id,
-      userId: admin.id,
-      title: 'ประชุมคณะกรรมการบริหาร (Executive Committee Meeting)',
-      description: 'รายงานผลประกอบการและทิศทางกลยุทธ์บริษัท',
-      startTime: m3Start,
-      endTime: m3End,
+      bookerName: "คุณสมชาย มุ่งมั่น",
+      bookerDepartment: "ฝ่ายบริหารกลยุทธ์",
+      bookerEmail: "somchai.m@example.com",
+      bookerPhone: "081-234-5678",
+      title: "ประชุมผู้บริหารทบทวนแผนกลยุทธ์ประจำไตรมาส",
+      description: "สรุป KPI รายไตรมาส และการจัดสรรงบประมาณปี 2570",
+      startTime: booking1Start,
+      endTime: booking1End,
       participantCount: 15,
-      participantsNote: 'C-Level & Directors',
-      status: BookingStatus.CONFIRMED,
+      status: "CONFIRMED",
+      equipments: {
+        create: [{ equipmentId: eqVideo.id, quantity: 1 }],
+      },
     },
   });
 
-  const booking4 = await prisma.booking.create({
+  // วันนี้ 13:00 - 15:00 ห้องกาสะลอง
+  const booking2Start = new Date(`${todayStr}T13:00:00+07:00`);
+  const booking2End = new Date(`${todayStr}T15:00:00+07:00`);
+
+  await prisma.booking.create({
     data: {
-      roomId: room3.id,
-      userId: emp3.id,
-      title: 'อบรมสัมมนาเทคนิคการตลาดดิจิทัล 2026',
-      description: 'การฝึกอบรมบุคลากรฝ่ายการตลาดและการขาย',
-      startTime: m4Start,
-      endTime: m4End,
-      participantCount: 25,
-      participantsNote: 'ทีมการตลาดและทีมขาย',
-      status: BookingStatus.CONFIRMED,
+      bookingCode: "BK-2610-B202",
+      manageToken: "a89d71b3-43ef-4f11-92b7-8178d46a81bb",
+      roomId: room2.id,
+      bookerName: "คุณพิมพา สดใส",
+      bookerDepartment: "ฝ่ายการตลาดและสื่อสารองค์กร",
+      bookerEmail: "pimpa.s@example.com",
+      bookerPhone: "089-876-5432",
+      title: "Workshop วางแผนเปิดตัวแคมเปญใหม่",
+      description: "ระดมสมองและสรุป Concept โฆษณาสำหรับ Social Media",
+      startTime: booking2Start,
+      endTime: booking2End,
+      participantCount: 8,
+      status: "CONFIRMED",
+      equipments: {
+        create: [{ equipmentId: eqTv.id, quantity: 1 }],
+      },
     },
   });
 
-  console.log('✅ Bookings created.');
+  // วันนี้ 10:00 - 12:00 ห้องอินทนิล
+  const booking3Start = new Date(`${todayStr}T10:00:00+07:00`);
+  const booking3End = new Date(`${todayStr}T12:00:00+07:00`);
 
-  // 6. Create Initial Notifications
-  await prisma.notification.createMany({
-    data: [
-      {
-        userId: emp1.id,
-        title: 'การจองห้องประชุมสำเร็จ',
-        message: 'คุณได้จอง "ห้องประชุมสัตตบรรณ (Boardroom)" เรียบร้อยแล้ว',
-        type: NotificationType.BOOKING_CONFIRMED,
-        isRead: false,
-        linkUrl: '/calendar',
-      },
-      {
-        userId: emp1.id,
-        title: 'แจ้งเตือนก่อนเริ่มประชุม 15 นาที',
-        message: 'การประชุม "Sprint Planning" จะเริ่มในอีก 15 นาที ณ ห้องสัตตบรรณ',
-        type: NotificationType.REMINDER_15MIN,
-        isRead: false,
-        linkUrl: '/calendar',
-      },
-      {
-        userId: admin.id,
-        title: 'มีการจองห้องประชุมใหม่',
-        message: 'สมชาย พัฒนาการ จองห้องสัตตบรรณ วันนี้เวลา 09:00 - 10:30',
-        type: NotificationType.BOOKING_CONFIRMED,
-        isRead: false,
-        linkUrl: '/admin/bookings',
-      },
-    ],
+  await prisma.booking.create({
+    data: {
+      bookingCode: "BK-2610-C303",
+      manageToken: "c18d991b-1234-4bc5-a111-998877665544",
+      roomId: room4.id,
+      bookerName: "คุณธนพล พัฒนากิจ",
+      bookerDepartment: "ฝ่ายเทคโนโลยีสารสนเทศ",
+      bookerEmail: "thanapol.p@example.com",
+      bookerPhone: "085-555-4321",
+      title: "Sprint Planning & Architecture Review",
+      description: "วางแผนงาน Sprint รอบถัดไปของทีม Full-stack",
+      startTime: booking3Start,
+      endTime: booking3End,
+      participantCount: 5,
+      status: "CONFIRMED",
+    },
   });
 
-  console.log('✅ Notifications created.');
-  console.log('🎉 Seeding completed successfully!');
-  console.log('----------------------------------------------------');
-  console.log('🔑 รหัสเข้าสู่ระบบทดสอบ:');
-  console.log('  Admin    : admin@company.com    / รหัสผ่าน: admin1234');
-  console.log('  Employee : somchai@company.com  / รหัสผ่าน: emp1234');
-  console.log('  Employee : suda@company.com     / รหัสผ่าน: emp1234');
-  console.log('  Employee : ananda@company.com   / รหัสผ่าน: emp1234');
-  console.log('----------------------------------------------------');
+  console.log("✅ จำลองการจองห้องประชุมสำเร็จ (3 รายการ)");
+  console.log("🎉 Seeding เสร็จสมบูรณ์ พร้อมใช้งาน!");
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error during seeding:', e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {

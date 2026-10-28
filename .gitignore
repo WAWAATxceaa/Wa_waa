@@ -6,7 +6,7 @@
 # Testing
 /coverage
 
-# Next.js build output
+# Next.js
 /.next/
 /out/
 
@@ -17,24 +17,16 @@
 .DS_Store
 *.pem
 
-# Debug logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Local environment files
+# Local env files
 .env*.local
 
-# SQLite database files
-dev.db
-dev.db-journal
-*.db
-*.db-journal
+# Vercel
+.vercel
 
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
 
-# Environment secrets
-.env*
-!.env.example
+# SQLite
+prisma/*.db
+prisma/*.db-journal
